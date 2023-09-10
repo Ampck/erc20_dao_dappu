@@ -5,32 +5,52 @@ import { ethers } from 'ethers'
 // Components
 import Navigation from './Navigation';
 import Loading from './Loading';
+import Proposals from './Proposals';
+import Create from './Create';
 
 // ABIs: Import your contract ABIs here
-// import TOKEN_ABI from '../abis/Token.json'
+import DAO_ABI from '../abis/DAO.json'
 
 // Config: Import your network config here
-// import config from '../config.json';
+import config from '../config.json';
 
 function App() {
   const [account, setAccount] = useState(null)
-  const [balance, setBalance] = useState(0)
+  const [dao, setDao] = useState(null)
+  const [treasuryBalance, setTreasuryBalance] = useState(0)
+  const [proposals, setProposals] = useState(null)
+  const [provider, setProvider] = useState(null)
+  const [quorum, setQuorum] = useState(null)
 
   const [isLoading, setIsLoading] = useState(true)
 
   const loadBlockchainData = async () => {
     // Initiate provider
     const provider = new ethers.providers.Web3Provider(window.ethereum)
+    setProvider(provider)
+
+    const dao = new ethers.Contract(config[31337].dao.address, DAO_ABI, provider)
+    setDao(dao)
+    
+    let treasuryBalance = await provider.getBalance(dao.address)
+    treasuryBalance = ethers.utils.formatUnits(treasuryBalance, 18)
+    setTreasuryBalance(treasuryBalance)    
 
     // Fetch accounts
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
     const account = ethers.utils.getAddress(accounts[0])
     setAccount(account)
 
-    // Fetch account balance
-    let balance = await provider.getBalance(account)
-    balance = ethers.utils.formatUnits(balance, 18)
-    setBalance(balance)
+    const count = await dao.proposalCount()
+    const items = []
+    for(var i = 0; i < count; i++) {
+      const proposal = await dao.proposals(i + 1)
+      items.push(proposal)
+    }
+    setProposals(items)
+
+    const quorum = await dao.quorum()
+    setQuorum(quorum)
 
     setIsLoading(false)
   }
@@ -45,14 +65,27 @@ function App() {
     <Container>
       <Navigation account={account} />
 
-      <h1 className='my-4 text-center'>React Hardhat Template</h1>
-
+      <h1 className='my-4 text-center'>Dapp University DAO</h1>
+      <hr/>
       {isLoading ? (
         <Loading />
       ) : (
         <>
-          <p className='text-center'><strong>Your ETH Balance:</strong> {balance} ETH</p>
-          <p className='text-center'>Edit App.js to add your code here.</p>
+          <Create
+            provider={provider}
+            dao={dao}
+            setIsLoading={setIsLoading}
+          />
+          <hr/>
+          <p className='text-center'><strong>Treasury Balance:</strong> {treasuryBalance} ETH</p>
+          <hr/>
+          <Proposals
+            provider={provider}
+            dao={dao}
+            proposals={proposals}
+            quorum={quorum}
+            setIsLoading={setIsLoading}
+          />
         </>
       )}
     </Container>

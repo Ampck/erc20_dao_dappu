@@ -85,8 +85,8 @@ contract DAO {
 
     function finalizeProposal(uint256 _id) external onlyInvestor {
         Proposal storage proposal = proposals[_id];
-        require(proposal.finalized == false, "Proposal already finalized...");
-        require(proposal.votes >= quorum, "Quorum not reached...");
+        require(proposal.finalized == false, "Proposal already finalized...")
+;        require(proposal.votes >= quorum, "Quorum not reached...");
         (bool sent, ) = proposal.recipient.call{value: proposal.amount}("");
         require(sent);
         proposal.finalized = true;
